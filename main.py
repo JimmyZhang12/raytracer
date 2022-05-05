@@ -1,57 +1,26 @@
-from re import T
-from readline import redisplay
-from site import removeduppaths
+
 from PIL import Image
 import numpy as np
 from util import *
 from camera import *
-import math
+from objects import *
+import random
+import cProfile
+import threading
 
-class Sphere():
-    def __init__(self, center, radius):
-        self.center = center
-        self.radius = radius
-
-    def hit(self, ray, t_min, t_max):
-        oc = ray.origin - self.center
-        a = ray.direction.len_squared()
-        half_b = Vec3.dot(oc, ray.direction)
-        c = oc.len_squared() - self.radius*self.radius
-        discriminant = half_b*half_b - a*c
-        if (discriminant < 0):
-            return False
-        sqrtd = math.sqrt(discriminant);
-
-        # Find the nearest root that lies in the acceptable range.
-        root = (-half_b - sqrtd) / a
-        if root < t_min or t_max < root:
-            root = (-half_b + sqrtd) / a
-            if root < t_min or t_max < root:
-                return False
-
-        t = root
-        p = ray.at(t)
-        normal = (p - self.center) / self.radius
-        return [t, p, normal]
-        
-
-class World():
-    hittables = []
-    def add_object(self, object):
-        self.hittables.append(object)
-    def hit(self, ray, t_min):
-        ret = False
-        closest_so_far = 99999
-
-        for obj in self.hittables:
-            tryhit = obj.hit(ray, t_min, closest_so_far)
-            if tryhit:
-                [t, p, normal] = tryhit
-                ret = [t, p, normal]
-                closest_so_far = t
-        return ret
-                
-
+def write_color(image_height, j, i , color, img, num_samples):
+    def clamp (x, min, max):
+        if (x < min): return min
+        if (x > max): return max
+        return x
+    color /= num_samples
+    color = color.sqrt()
+    final_color = Vec3(
+        int(256 * clamp(color.x, 0.0, 0.999)),
+        int(256 * clamp(color.y, 0.0, 0.999)),
+        int(256 * clamp(color.z, 0.0, 0.999)),
+    )
+    img[-j+(image_height-1),i] = final_color.unwrap()
 
 def print_image(data):
     data.astype(int)
@@ -59,42 +28,72 @@ def print_image(data):
     img.save('my.png')
     img.show()
 
-if __name__ == "__main__":
-    #image 
-    aspect_ratio = 16.0/9.0
-    image_width = 400
-    image_height = int((image_width / aspect_ratio))
-    img = np.zeros((image_height, image_width, 3), dtype=np.uint8)
 
-    #camera
-    camera = Camera(aspect_ratio)
+def random_unit_sphere():
+    while (True):
+        p = Vec3.random(-1,1)
+        if (p.len_squared() >= 1):
+            continue
+        return p
+
+
+def ray_color(ray, world, depth):
+
+    if depth <= 0:
+        return Vec3(0,0,0)
+
+    pt = world.hit(ray,0)
+    if pt:
+        [t, p, N, front_face, obj] = pt
+        bounced_ray, attenutation = obj.material.scatter(ray, N, p, front_face)
+
+        return attenutation * ray_color(bounced_ray, world, depth-1)
+    ray_dir = ray.unit_direction()
+    t = 0.5*(ray_dir.y + 1.0)
+    return Vec3(1, 1, 1)*(1.0-t) + Vec3(0.5, 0.7, 1.0)*t
+
+def run():
+    #INITIALIZATION
+    samples_per_pixel = 50
+    aspect_ratio = 16.0/9.0
+    image_width = 200
+    ray_depth = 8
+    image_height = int((image_width / aspect_ratio))
+
+    #CAMERA
+    camera = Camera(
+        lookfrom = Vec3(0,0,0),
+        lookat = Vec3(0,0,-1),
+        vup = Vec3(0,1,0),
+        fov = 90,
+        aspect_ratio = aspect_ratio)
 
     world = World()
-    world.add_object(Sphere(Vec3.from_val(0,0,-1), 0.5))
-    world.add_object(Sphere(Vec3.from_val(0,-100.5,-1), 100))
+    world.add_object(Sphere(Vec3( 0.0, -100.5, -1.0), 100.0, Lambertian(Vec3(0.8,0.8,0))))
+    world.add_object(Sphere(Vec3( 0.0,    0.0, -1.0),   0.5, Lambertian(Vec3(0.7,0.3,0.3))))
+    world.add_object(Sphere(Vec3(-1.0,    0.0, -1.0),   0.5, Dielectric(2)))
+    world.add_object(Sphere(Vec3( 1.0,    0.0, -1.0),   0.5, Metal(Vec3(0.8,0.6,0.2))))
+
 
     print(f"Generating image {image_height} tall and {image_width} wide")
+    img = np.zeros((image_height, image_width, 3), dtype=np.uint8)
+
     for j in range(image_height-1, -1, -1):
         print(f"row {j}")
         for i in range(image_width-1, -1, -1):
-            v = j / (image_height-1)
-            u = i / (image_width-1)
-            ray = camera.get_ray(u, v)
 
-            pt = world.hit(ray,0)
-            if pt:
-                [t, p, N] = pt
-                color = 0.5*(N + 1)
+            color = Vec3(0,0,0)
+            for _ in range(samples_per_pixel):
 
-            else:
-                ray_dir = ray.unit_direction()
-                t = 0.5*(ray_dir.y + 1.0)
-                color = Vec3.from_val(1, 1, 1)*(1.0-t) + Vec3.from_val(0.5, 0.7, 1.0)*t
+                v = (j + random.uniform(0,1)) / (image_height-1)
+                u = (i + random.uniform(0,1)) / (image_width-1)
 
-            color *= 255
-            # print(f" u {u} v {v}, j {j} v {i}| t {t}")
-            img[-j+(image_height-1),i] = color.unwrap()
+                ray = camera.get_ray(u, v)
+                color += ray_color(ray, world, ray_depth)
 
-            # input()
-        print_image(img)
+            write_color(image_height, j, i , color, img, samples_per_pixel)
 
+    print_image(img)
+
+if __name__ == "__main__":
+    run()
