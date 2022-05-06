@@ -1,4 +1,5 @@
 
+
 from PIL import Image
 import numpy as np
 from util import *
@@ -7,10 +8,16 @@ from objects import *
 import random
 import multiprocessing as mp
 import ctypes
+from random import uniform
 
+'''
+Main ray tracing class. Handles loading objects into the world,
+sending rays into the scene and saving the ray color into an image
+Also supports mulithreading along the rows of the output image
+'''
 
 class RayTracer():
-    samples_per_pixel = 250
+    samples_per_pixel = 500
     aspect_ratio = 16.0/9.0
     image_width = 200
     ray_depth = 25
@@ -22,15 +29,14 @@ class RayTracer():
             lookfrom = lookfrom,
             lookat = lookat,
             vup = Vec3(0,1,0),
-            fov = 90,
+            fov = 80,
             aspect_ratio = self.aspect_ratio)
 
-        self.world = World(BVH_ON = True)
+        self.world = World(self.use_BVH)
 
         self.img = np.zeros((self.image_height, self.image_width, 3), dtype=np.uint8)
 
-        self.mp_arr = mp.Array(ctypes.c_byte, self.image_height*self.image_width*3) # shared, can be used from multiple processes
-        # then in each new process create a new numpy array using:
+        self.mp_arr = mp.Array(ctypes.c_byte, self.image_height*self.image_width*3)
 
         self.height = self.img.shape[0]
         self.width = self.img.shape[1]
@@ -141,18 +147,43 @@ class RayTracer():
         t = 0.5*(ray_dir.y + 1.0)
         return Vec3(1, 1, 1)*(1.0-t) + Vec3(0.3, 0.5, 0.8)*t
 
+#checks if two spheres overlap
+def are_colliding(c1, r1, c2, r2):
+    dist = math.sqrt((c1 - c2).len_squared())
+    return dist < (r1+r2)
 
 #main driver
 def main():
+    #PARAMETERS
+    rt = RayTracer(lookat = Vec3(0,0,0), lookfrom = Vec3(0,4,-4)) 
+    NUM_SPHERES = 40
+    #floor plane dimensions
+    floor_l = -10
+    floor_r = 10
+    floor_b = -4
+    floor_f = 10
 
 
-    rt = RayTracer(lookat = Vec3(0,0,0), lookfrom = Vec3(0,2,3))
+    rt.add_object(RectFlat(floor_l,floor_r,floor_b,floor_f,0, Lambertian( Texture("wood.jpg")) ))
+
+    spheres = [Sphere( Vec3(0.0,   2.0, 0.0), 2, Metal(SolidColor(Vec3(1.0,1.0,1.0))) )]
+    while(len(spheres)< NUM_SPHERES):
+        test_radius = uniform(0.5,1.5)
+        test_center = Vec3(random.uniform(-10,10), test_radius, random.uniform(-4,10))
+
+        if not any(are_colliding(test_center, test_radius, s.center, s.radius) for s in spheres) or len(spheres)<1:
+            sel = random.randint(0,2)
+            if sel == 0:
+                spheres.append(Sphere(test_center, test_radius, Metal() ))
+            elif sel == 1:
+                spheres.append(Sphere(test_center, test_radius, Dielectric() ))
+            else:
+                spheres.append(Sphere(test_center, test_radius, Lambertian() ))
+
+    for s in spheres:
+        rt.add_object(s)
     
-    rt.add_object(Sphere( Vec3(0.0,   1.0, 0.0), 1, Metal( SolidColor(Vec3(0.8,0.6,0.2))) ))
-    rt.add_object(Sphere( Vec3(-4.0,  1.0, 0.0), 1, Lambertian( SolidColor(Vec3(0.7,0.3,0.3)) ) ))
-    rt.add_object(Sphere( Vec3(4.0,   1.0, 0.0), 1, Dielectric(1.5) ))
-    rt.add_object(RectFlat(-10,10,-10,10,0, Lambertian( Texture("wood.jpg")) ))
-    rt.finalize()
+    rt.finalize() #generates the bbv
     rt.run()
 
 if __name__ == "__main__":

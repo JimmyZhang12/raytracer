@@ -1,3 +1,9 @@
+
+'''
+This file contains classes describing the physical objects within the world
+Also contains the world class which contains all objects and performs ray intersections
+'''
+
 from re import U
 from util import *
 from camera import *
@@ -8,21 +14,34 @@ from abc import ABC, abstractmethod
 from materials import *
 from dataclasses import dataclass
 
-#This file contains classes describing the physical objects within the world
-#Contains spheres, materials, and textures
-#Also contains the world class which contains all objects
 
+#packet describing a ray intersection with an object
 @dataclass
 class CollisionPacket():
-    t          : float = 0
-    p          : Vec3 = Vec3(0,0,0)
-    normal     : Vec3 = Vec3(0,0,0)
-    front_face : bool = False
-    u          : float = 0
-    v          : float = 0
+    t          : float = 0          #time to hit
+    p          : Vec3 = Vec3(0,0,0) #hit point
+    normal     : Vec3 = Vec3(0,0,0) #normal of the hit surface, always against the ray
+    front_face : bool = False       #was the surface facing the ray?
+    u          : float = 0          #horizontal texture coordinate
+    v          : float = 0          #vertical texture coordinate
 
-
+#Parent class for all objects
+#Enforces a ray hit method, bounding box, and y position query
 class Object(ABC):
+    @property
+    @abstractmethod
+    def bb(self):
+        pass
+
+    @property
+    @abstractmethod
+    def hit(self, ray, t_min, t_max, collision_packet):
+        pass
+
+    @property
+    @abstractmethod
+    def get_y(self):
+        pass
 
     def set_face_normal(self, ray, outward_normal):
         if Vec3.dot(ray.direction, outward_normal) > 0:
@@ -33,11 +52,10 @@ class Object(ABC):
             front_face = True
         return [normal, front_face]
 
-    @abstractmethod
-    def hit(ray, t_min, t_max, collision_packet):
-        pass
 
+#Flat plane instance
 class RectFlat(Object):
+    bb = None
     def __init__(self, x0, x1, z0, z1, k, material:Material):
         self.x0 = x0
         self.x1 = x1
@@ -46,7 +64,10 @@ class RectFlat(Object):
         self.k = k
         self.material = material
         self.bb = BB(Vec3(x0, k-0.001, z0), Vec3(x1, k+0.001, z1))
-    
+
+    def get_y(self):
+        return self.k
+
     def hit(self, ray, t_min, t_max, collision_packet):
         if ray.direction.y >=0 and ray.origin.y >= self.k:
             return False
@@ -75,14 +96,18 @@ class RectFlat(Object):
 
         return True
 
-
+#Physical sphere instance
 class Sphere(Object):
+    bb = None
     def __init__(self, center: Vec3, radius: Vec3, material: Material):
         self.center = center
         self.radius = radius
         self.material = material
         self.bb = BB(center - Vec3(radius, radius, radius),
             center + Vec3(radius, radius, radius))
+
+    def get_y(self):
+        return self.center.y
 
     def hit(self, ray, t_min, t_max, collision_packet):
         oc = ray.origin - self.center
@@ -151,15 +176,20 @@ class World():
                 max(b0.maxv.z, b1.maxv.z))   
             return BB(small, big)
 
+        #sort the object list based on y coordinate
+        #this is to try to minimize the size of bounding boxes of the nodes in the BVH
         builder = [o for o in self.hittables]
+        builder = sorted(builder, key=lambda x: x.get_y(), reverse=True)
 
+        #if empty scene, BVH is just one trivial node
         if len(builder) == 0:
             self.bb_root = BVH_node(BB(Vec3(0,0,0), Vec3(0,0,0)), None, None)
             return
 
-        # print(builder)
+        #if generate BVH bottom up manner
+        #each loop, remove two nodes or objects and attach to a new node with those objects as leaves
+        #continue until a single node (the root) is left
         while True:
-            #generate one layer of the tree
             temp = []
             while len(builder) > 0:
 
@@ -168,7 +198,6 @@ class World():
                     right = builder.pop()
                     combined_box = combine_boxes(left.bb, right.bb)
                 else:
-                    print("flag")
                     left = builder.pop()
                     right = None
                     combined_box = left.bb
@@ -180,11 +209,10 @@ class World():
             if len(builder) == 1:
                 break
 
-        # print(builder)
-        # for b in builder:
-        #     print(b)
+        #last remaining node is the root of the tree
         self.bb_root = builder[0]
     
+    #send a ray into the world
     def hit(self, ray:Ray, t_min, collision_packet):
 
         ret = False

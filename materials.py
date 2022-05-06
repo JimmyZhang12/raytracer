@@ -1,4 +1,10 @@
 
+'''
+Contains classes describing materials and colors
+materials are attributes to objects
+colors are attributes to materials
+'''
+
 
 from abc import ABC, abstractmethod
 from util import Vec3, Ray
@@ -6,8 +12,12 @@ import math
 from typing import Tuple
 from PIL import Image
 import numpy as np
+import random
 
+
+#Parents class enforcing a color value query
 class Color(ABC):
+    @property
     @abstractmethod
     def value(self, u, v) -> Vec3:
         pass
@@ -48,6 +58,10 @@ class Texture(Color):
         return Vec3.from_array(self.img[h][w])
     pass
 
+
+#Parents class for materials
+#Used to get a ray bounce and color
+#Child classes must implement ray bounce calculation
 class Material(ABC):
     albedo = None
 
@@ -67,21 +81,25 @@ class Material(ABC):
             if (p.len_squared() >= 1):
                 continue
             return p
-            
-    @abstractmethod
-    def bounce_ray(self, inc_ray, collision) -> Ray:
-        pass
 
     def scatter(self, inc_ray, collision) -> Tuple[Ray, Vec3]:
         new_ray = self.bounce_ray(inc_ray, collision)
         color = self.albedo.value(collision)
         return (new_ray, color)
 
+    @property
+    @abstractmethod
+    def bounce_ray(self, inc_ray, collision) -> Ray:
+        pass
 
 
 class Lambertian(Material):
-    def __init__(self, albedo:Color):
-        self.albedo = albedo
+    def __init__(self, albedo:Color = None):
+        if albedo == None:
+            self.albedo=SolidColor(
+                Vec3(random.uniform(0.3,1),random.uniform(0.3,1),random.uniform(0.3,1)))
+        else:
+            self.albedo = albedo
 
     def bounce_ray(self, inc_ray, collision):
         rand_dir = self.random_unit_sphere().unit_length()
@@ -94,8 +112,12 @@ class Lambertian(Material):
         return scattered
 
 class Metal(Material):
-    def __init__(self, albedo:Color):
-        self.albedo = albedo
+    def __init__(self, albedo=None):
+        if albedo == None:
+            self.albedo=SolidColor(
+                Vec3(random.uniform(0.3,1),random.uniform(0.3,1),random.uniform(0.3,1)))
+        else:
+            self.albedo = albedo
 
     def bounce_ray(self, inc_ray, collision):
         scatter_direction = self.reflect(inc_ray.unit_direction(), collision.normal)
@@ -106,7 +128,7 @@ class Metal(Material):
         return scattered
 
 class Dielectric(Material):
-    def __init__(self, index_of_refract):
+    def __init__(self, index_of_refract=1.5):
         self.index_of_refract = index_of_refract
         self.albedo = SolidColor(Vec3(1,1,1))
         

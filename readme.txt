@@ -13,11 +13,15 @@ wherever the programmed is executed from
 RayTracer Features:
     Positionable camera	
     Spheres
+    Planes
     Diffuse material	
     Metal material		
     Dielectrics	
-    Instances (of spheres)
+    Instancing
     Bounding Volume Hierarchy
+    Textures
+    Shadows
+    
 
 Files:
     boundingbox.py 
@@ -41,4 +45,4 @@ Files:
             image_width = 400
             ray_depth = 8
         You can customize the settings by editing the constants marked "PARAMETERS"
-        at the start of: run() in main.py
+        at the start of: RayTracer() in main.py
