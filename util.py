@@ -12,8 +12,8 @@ class Vec3:
 
 
     @classmethod
-    def from_list(cls, arr):
-        Vec3(arr[0], arr[1], arr[2])
+    def from_array(cls, arr):
+        return Vec3(arr[0], arr[1], arr[2])
 
     def unwrap(self):
         return self.coor
@@ -55,7 +55,6 @@ class Vec3:
     def unit_length(self):
         length = math.sqrt(self.len_squared())
         return Vec3(self.coor[0]/length, self.coor[1]/length, self.coor[2]/length)
-
 
     def sqrt(self):
         return Vec3(math.sqrt(self.coor[0]), math.sqrt(self.coor[1]), math.sqrt(self.coor[2]))

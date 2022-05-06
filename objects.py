@@ -157,9 +157,8 @@ class World():
             self.bb_root = BVH_node(BB(Vec3(0,0,0), Vec3(0,0,0)), None, None)
             return
 
-        print(builder)
+        # print(builder)
         while True:
-            print(len(builder))
             #generate one layer of the tree
             temp = []
             while len(builder) > 0:
@@ -181,9 +180,9 @@ class World():
             if len(builder) == 1:
                 break
 
-        print(builder)
-        for b in builder:
-            print(b)
+        # print(builder)
+        # for b in builder:
+        #     print(b)
         self.bb_root = builder[0]
     
     def hit(self, ray:Ray, t_min, collision_packet):

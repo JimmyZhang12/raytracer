@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from util import Vec3, Ray
 import math
 from typing import Tuple
+from PIL import Image
+import numpy as np
 
 class Color(ABC):
     @abstractmethod
@@ -31,6 +33,19 @@ class CheckerColor(Color):
                 return Vec3(0.9,0.9,0.3)
 
 class Texture(Color):
+    def __init__(self, fname):
+        print(f"Loading Texture from: {fname}")
+        image = Image.open(fname)
+        self.img = np.asarray(image).astype(float)
+        self.img /= 255
+        self.height = self.img.shape[0]
+        self.width = self.img.shape[1]
+        print(f"Done!")
+
+    def value(self, collision):
+        h = int(collision.v*self.height)
+        w = int(collision.u*self.width)
+        return Vec3.from_array(self.img[h][w])
     pass
 
 class Material(ABC):
@@ -69,7 +84,7 @@ class Lambertian(Material):
         self.albedo = albedo
 
     def bounce_ray(self, inc_ray, collision):
-        rand_dir = self.random_unit_sphere()
+        rand_dir = self.random_unit_sphere().unit_length()
         scatter_direction = collision.normal + rand_dir
 
         if scatter_direction.len_squared() < 0.001:
