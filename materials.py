@@ -3,19 +3,50 @@
 from abc import ABC, abstractmethod
 from util import Vec3, Ray
 import math
+from typing import Tuple
+
+class Color(ABC):
+    @abstractmethod
+    def value(self, u, v) -> Vec3:
+        pass
+
+class SolidColor(Color):
+    def __init__(self, color):
+        self.color = color
+    def value(self, collision):
+        return self.color
+
+class CheckerColor(Color):
+    def value(self, collision):
+
+        if int(collision.v / 0.03)%2 == 0:
+            if int(collision.u / 0.03)%2 == 0:
+                return Vec3(0.3,0.3,0.3)
+            else:
+                return Vec3(0.9,0.9,0.3)
+        else:
+            if int(collision.u / 0.03)%2 == 1:
+                return Vec3(0.3,0.3,0.3)
+            else:
+                return Vec3(0.9,0.9,0.3)
+
+class Texture(Color):
+    pass
 
 class Material(ABC):
-    def reflect(self, v, n):
-        return v - 2*Vec3.dot(v,n)*n
+    albedo = None
 
-    def refract(self, uv, n, refact_ratio):
+    def reflect(self, v, n) -> Vec3:
+        return v - 2*Vec3.dot(v,n)*n 
+
+    def refract(self, uv, n, refact_ratio) -> Vec3:
         cos_theta = min(Vec3.dot(-1*uv, n), 1.0)
         r_out_perp = refact_ratio * (uv + (cos_theta*n))
         r_out_parallel = -1*math.sqrt(abs(1.0 - r_out_perp.len_squared())) * n
 
         return r_out_perp + r_out_parallel
     
-    def random_unit_sphere(self):
+    def random_unit_sphere(self) -> Vec3:
         while (True):
             p = Vec3.random(-1,1)
             if (p.len_squared() >= 1):
@@ -23,54 +54,62 @@ class Material(ABC):
             return p
             
     @abstractmethod
-    def scatter(self, inc_ray, normal, point, front_face):
+    def bounce_ray(self, inc_ray, collision) -> Ray:
         pass
 
+    def scatter(self, inc_ray, collision) -> Tuple[Ray, Vec3]:
+        new_ray = self.bounce_ray(inc_ray, collision)
+        color = self.albedo.value(collision)
+        return (new_ray, color)
+
+
+
 class Lambertian(Material):
-    def __init__(self, albedo):
+    def __init__(self, albedo:Color):
         self.albedo = albedo
 
-    def scatter(self, inc_ray, normal, point, front_face):
+    def bounce_ray(self, inc_ray, collision):
         rand_dir = self.random_unit_sphere()
-        scatter_direction = normal + rand_dir
+        scatter_direction = collision.normal + rand_dir
 
         if scatter_direction.len_squared() < 0.001:
-            scatter_direction = normal
-        scattered = Ray(point, scatter_direction)
+            scatter_direction = collision.normal
+        scattered = Ray(collision.p, scatter_direction)
 
-        return (scattered, self.albedo)
+        return scattered
 
 class Metal(Material):
-    def __init__(self, albedo):
+    def __init__(self, albedo:Color):
         self.albedo = albedo
 
-    def scatter(self, inc_ray, normal, point, front_face):
-        scatter_direction = self.reflect(inc_ray.unit_direction(), normal)
+    def bounce_ray(self, inc_ray, collision):
+        scatter_direction = self.reflect(inc_ray.unit_direction(), collision.normal)
         if scatter_direction.len_squared() < 0.001:
-            scatter_direction = normal
-        scattered = Ray(point, scatter_direction)
-        return (scattered, self.albedo)
+            scatter_direction = collision.normal
+        scattered = Ray(collision.p, scatter_direction)
+
+        return scattered
 
 class Dielectric(Material):
     def __init__(self, index_of_refract):
         self.index_of_refract = index_of_refract
-    
-    def scatter(self, inc_ray, normal, point, front_face):
-        attenuation = Vec3(1,1,1)
-        if front_face:
+        self.albedo = SolidColor(Vec3(1,1,1))
+        
+    def bounce_ray(self, inc_ray, collision):
+        if collision.front_face:
             refraction_ratio = 1 / self.index_of_refract
         else:
             refraction_ratio = self.index_of_refract
 
         unit_direction = inc_ray.unit_direction()
-        cos_theta = min(Vec3.dot(-1*unit_direction, normal), 1.0)
+        cos_theta = min(Vec3.dot(-1*unit_direction, collision.normal), 1.0)
         sin_theta = math.sqrt(1.0 - cos_theta*cos_theta)
 
         cannot_refract = refraction_ratio * sin_theta > 1.0
         if (cannot_refract):
-            refract_direction = self.reflect(inc_ray.unit_direction(), normal)
+            refract_direction = self.reflect(inc_ray.unit_direction(), collision.normal)
         else:
-            refract_direction = self.refract(inc_ray.unit_direction(), normal, refraction_ratio)
+            refract_direction = self.refract(inc_ray.unit_direction(), collision.normal, refraction_ratio)
 
-        scattered = Ray(point, refract_direction)
-        return (scattered, attenuation)
+        scattered = Ray(collision.p, refract_direction)
+        return scattered

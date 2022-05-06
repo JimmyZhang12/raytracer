@@ -1,3 +1,4 @@
+from re import U
 from util import *
 from camera import *
 from boundingbox import *
@@ -5,10 +6,21 @@ import sys
 import math
 from abc import ABC, abstractmethod
 from materials import *
+from dataclasses import dataclass
 
 #This file contains classes describing the physical objects within the world
 #Contains spheres, materials, and textures
 #Also contains the world class which contains all objects
+
+@dataclass
+class CollisionPacket():
+    t          : float = 0
+    p          : Vec3 = Vec3(0,0,0)
+    normal     : Vec3 = Vec3(0,0,0)
+    front_face : bool = False
+    u          : float = 0
+    v          : float = 0
+
 
 class Object(ABC):
 
@@ -22,7 +34,7 @@ class Object(ABC):
         return [normal, front_face]
 
     @abstractmethod
-    def hit(ray, t_min, t_max):
+    def hit(ray, t_min, t_max, collision_packet):
         pass
 
 class RectFlat(Object):
@@ -35,7 +47,7 @@ class RectFlat(Object):
         self.material = material
         self.bb = BB(Vec3(x0, k-0.001, z0), Vec3(x1, k+0.001, z1))
     
-    def hit(self, ray, t_min, t_max):
+    def hit(self, ray, t_min, t_max, collision_packet):
         if ray.direction.y >=0 and ray.origin.y >= self.k:
             return False
 
@@ -52,11 +64,16 @@ class RectFlat(Object):
         outward_normal = Vec3(0,1,0)
         [normal, front_face] = self.set_face_normal(ray, outward_normal)
         p = ray.at(t)
-        # print(f"hit at {p}")
-        # print(f"RETURN {normal} {front_face}")
-        # if (normal[1] < 0):
-        #     input()
-        return [t, p, normal, front_face]
+
+        collision_packet.t = t
+        collision_packet.p = p
+        collision_packet.normal = normal
+        collision_packet.front_face = front_face
+        collision_packet.u = (p.x - self.x0) / (self.x1 - self.x0)
+        collision_packet.v = (p.z - self.z0) / (self.z1 - self.z0)
+
+
+        return True
 
 
 class Sphere(Object):
@@ -67,7 +84,7 @@ class Sphere(Object):
         self.bb = BB(center - Vec3(radius, radius, radius),
             center + Vec3(radius, radius, radius))
 
-    def hit(self, ray, t_min, t_max):
+    def hit(self, ray, t_min, t_max, collision_packet):
         oc = ray.origin - self.center
         a = ray.direction.len_squared()
         half_b = Vec3.dot(oc, ray.direction)
@@ -88,11 +105,23 @@ class Sphere(Object):
         p = ray.at(t)
         outward_normal = (p - self.center) / self.radius
 
+        norm_p = (p - self.center) / self.radius
+        theta = math.acos(-norm_p.y)
+        phi = math.atan2(-norm_p.z, norm_p.x) + math.pi
+        u = phi / (2*math.pi)
+        v = theta / math.pi
+
         #normal always points against ray
         [normal, front_face] = self.set_face_normal(ray, outward_normal)
 
+        collision_packet.t = t
+        collision_packet.p = p
+        collision_packet.normal = normal
+        collision_packet.front_face = front_face
+        collision_packet.u = u
+        collision_packet.v = v
+        return True
 
-        return [t, p, normal, front_face]
     def __str__(self):
         return f"Sphere, center {self.center} radius {self.radius}"
 
@@ -103,13 +132,14 @@ class World():
     count = 0
     ray_count = 1
 
+    def __init__(self, BVH_ON=True):
+        self.use_bb = BVH_ON
+
     def add_object(self, obj:Object):
         self.hittables.append(obj)
 
     #bottom up tree 
     def create_BoundingHierarchy(self):
-        assert(len(self.hittables) > 0)
-
         def combine_boxes(b0, b1):
             small = Vec3(
                 min(b0.minv.x, b1.minv.x),
@@ -123,8 +153,12 @@ class World():
 
         builder = [o for o in self.hittables]
 
+        if len(builder) == 0:
+            self.bb_root = BVH_node(BB(Vec3(0,0,0), Vec3(0,0,0)), None, None)
+            return
+
         print(builder)
-        while len(builder) > 1:
+        while True:
             print(len(builder))
             #generate one layer of the tree
             temp = []
@@ -143,26 +177,33 @@ class World():
                 node = BVH_node(combined_box, left, right)
                 temp.append(node)
             builder = temp 
-            print(builder)
-            for b in builder:
-                print(b)
+
+            if len(builder) == 1:
+                break
+
+        print(builder)
+        for b in builder:
+            print(b)
         self.bb_root = builder[0]
     
-    def hit(self, ray:Ray, t_min):
+    def hit(self, ray:Ray, t_min, collision_packet):
 
         ret = False
         closest_so_far = 99999
 
-        ray_intersect_list = []
-        self.bb_root.hit(ray, t_min=0.01, t_max=9999, obj_list=ray_intersect_list)
+        if self.use_bb:
+            ray_intersect_list = []
+            self.bb_root.hit(ray, t_min, t_max=9999, obj_list=ray_intersect_list)
+        else:
+            ray_intersect_list = self.hittables
+        
+
         self.count += len(ray_intersect_list)
-        self.ray_count += 1
+        self.ray_count += 1  
 
         for obj in ray_intersect_list:
-            tryhit = obj.hit(ray, t_min, closest_so_far)
-            if tryhit:
-                [t, p, normal, front_face] = tryhit
-                ret = [t, p, normal, front_face, obj]
-                closest_so_far = t
+            if obj.hit(ray, t_min, closest_so_far, collision_packet):
+                ret = obj
+                closest_so_far = collision_packet.t
         return ret
                 
