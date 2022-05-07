@@ -3,6 +3,7 @@
 ![Sample](scene_golden.png)
 
 A Raytracer implemented in Python, following the architecture decribed by "Ray Tracing the next Week" by Peter Shirley
+The raytracer takes about 20minutes to render this sample image at 900x600. 
 
 For CS418 Spring 2022
 
@@ -76,7 +77,7 @@ This is a limitation of the fact that objects are represented as mathematical fo
 
 One would have to dynamically group similar ray calculations at runtime to take advantage of vectorization, either by masking the vector or reordering them. While this is possible and a technique often used in HPC, is outside the scope of this project. 
 
-The raytracer takes about 20minutes to render the sample image at 900x600. 
+For the sample image, the amount of rays is 500*900*600. Say each ray is 1000 instructions generously. Assuming a CPI of 1 (an underestimate), a 4ghz single core should be able to finish roughly about a minute. My processor is an 8 core, 6wide CPU so it should chew through the image in seconds! There is a ton of performance left on the table.
 
 References:
     - https://raytracing.github.io/books/RayTracingInOneWeekend.html
