@@ -1,30 +1,34 @@
-Raytracing Project by Jimmy Zhang (jimmyjz2@illinois.edu)
+# Raytracing Project
+## By Jimmy Zhang (jimmyjz2@illinois.edu)
+A Raytracer implemented in Python, following the architecture decribed by "Ray Tracing the next Week" by Peter Shirley
 
-Dependencies:
-    Python3.8+
-    numpy
-    PIL
-
-This project can be run with:
+# Dependencies:
+Python3.8+
+numpy
+PIL
+    
+# Running
+This project can be run using the following command:
+```
     python3 main.py
+```
 
-    This project will output a "scene.png" in the current working directory
+This project will output a "scene.png" in the current working directory
 
-
-RayTracer Features:
-    Positionable camera	
-    Spheres
-    Planes
-    Diffuse material	
-    Metal material		
-    Dielectrics	
-    Instancing
-    Bounding Volume Hierarchy
-    Textures
-    Shadows
+# Features:
+Positionable camera	
+Spheres
+Planes
+Diffuse material	
+Metal material		
+Dielectrics	
+Instancing
+Bounding Volume Hierarchy
+Textures
+Shadows
     
 
-Files:
+# Files:
     boundingbox.py 
         classes implementing the Bounding Hierarchy Tree
     camera.py
@@ -52,8 +56,24 @@ Files:
         You can customize the settings by editing the constants marked "PARAMETERS"
         at the start of: RayTracer() in main.py
 
-Remarks:
-    My raytracer follows the architecture decribed by "Ray Tree
+# Remarks
+There are notable changes in order to take advantage Python's power dynamic typing abilities compared to Peter Shirley's book. 
+Namely, my BVH implementation relies on reducing a dynamic list of bounding boxes and objects into a tree structure. The raytracer builds the tree in a bottom up manner, combining nodes until the root is reached. This is contrast with the RTIAW (Ray Tracing in a Weekend) which goes in a top down manner.  Next, materials and colors are treated as first class attributes of objects rather than references. 
+Finally, I use my Vec3 class to represent any three length array, which includes representing colors, points, and vectors for my raytracer.
+
+I also implemented my own Vec3 api, which is essentially a wrapper for a 3-item Python list.
+
+## Performance
+I also support multithreading, assigning a number of rows for each thread. On my Ryzen 5600x, using 6 threads yields about a 2.5x in improvement. For my Vec3 implementation, I opted to use the standard python list rather than a numpy array as the underlying data strucutre. This is because while numpy arrays are very fast a vectorized operations, they have much greater overhead for object construction. Because of the short length Vec3, and because Python lists are heavily optimized for insertion and manipulation, performance is actually greater for numpy.
+
+Profiling the code, the raytracer spends 90+ of its time traversing the BVH tree and very little time actually simulating the objects. One could probably achieve greater performance by mapping the BVH the Cython, or by using a more efficent algorthim.
+
+I also thought about vectorization but I could not come up with a performant enough scheme for numpy. The main issue is that rays need the same physics calculation to be vectorized by numpy. But a set of rays, say for sampling of one pixel, may bounce into objects of different types. In general only the first bounce can be guaranteed to be the same for a set of node. 
+This is a limitation of the fact that objects are represented as mathematical formulas. In a real ray tracing engine, the bounces would on polygons and would be very vectorizeable.
+
+One would have to dynamically group similar ray calculations at runtime to take advantage of vectorization. While this is possible and a technique often used in HPC, is outside the scope of this project. 
+
+The raytracer takes about 20minutes to render the sample image at 900x600. 
 
 Citations:
 https://raytracing.github.io/books/RayTracingInOneWeekend.html
