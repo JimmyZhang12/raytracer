@@ -1,7 +1,9 @@
 # Raytracing Project
 ## By Jimmy Zhang (jimmyjz2@illinois.edu)
-A Raytracer implemented in Python, following the architecture decribed by "Ray Tracing the next Week" by Peter Shirley
 ![Sample](scene_golden.png)
+
+A Raytracer implemented in Python, following the architecture decribed by "Ray Tracing the next Week" by Peter Shirley
+
 ## Features:
 - Positionable camera	
 - Spheres
