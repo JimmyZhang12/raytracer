@@ -1,7 +1,7 @@
 from util import *
 
 #A moveable camera class
-#The camera generates ray that are shot into the world
+#The camera generates rays that are shot into the world
 
 class Camera():
     def __init__(self, lookfrom, lookat, vup, fov, aspect_ratio):
@@ -28,6 +28,7 @@ class Camera():
         # self.vertical = Vec3(0, self.viewport_height,0)
         # self.lower_left_corner = self.origin - self.horizontal/2 - self.vertical/2 - Vec3(0,0,self.focal_length)
 
+    #returns a ray to a coordinate in the display plane
     def get_ray(self, u, v):
         direction = (self.lower_left_corner + self.horizontal*u + self.vertical*v) - self.origin
         return Ray(self.origin, direction)

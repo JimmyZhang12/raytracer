@@ -17,9 +17,9 @@ Also supports mulithreading along the rows of the output image
 '''
 
 class RayTracer():
-    samples_per_pixel = 500
+    samples_per_pixel = 1000
     aspect_ratio = 16.0/9.0
-    image_width = 200
+    image_width = 1920
     ray_depth = 25
     image_height = int((image_width / aspect_ratio))
     use_BVH = True
@@ -41,14 +41,16 @@ class RayTracer():
         self.height = self.img.shape[0]
         self.width = self.img.shape[1]
 
-    
+    #setup the BVH after objects are added
     def finalize(self):
         if self.use_BVH:
             self.world.create_BoundingHierarchy()
 
+    #add an object to the scene
     def add_object(self, obj:Object):
         self.world.add_object(obj)
 
+    #draws pixels, from rows j_start to j_stop
     def color_rows(self, j_start, j_stop):
         arr = np.frombuffer(self.mp_arr.get_obj(), dtype=np.uint8) 
         arr = arr.reshape((self.image_height,self.image_width,3)) # b and arr share the same memory
@@ -66,7 +68,7 @@ class RayTracer():
                 self.write_color(j, i , color, arr)
         print(f"Done row {j_start} - {j_stop}: Average intersections per ray : {(self.world.count / self.world.ray_count):.2f}")
         
-
+    #draw the image, mulithreading across pixel rows
     def run(self, fname="scene.png"):
         print(f"Generating image {self.image_height} tall and {self.image_width} wide")
 
@@ -86,7 +88,7 @@ class RayTracer():
 
         self.print_image(fname, arr)
 
-
+    #draw the image, using a single thread
     def run_singlethread(self, fname = "scene.png"):
         print(f"Generating image {self.image_height} tall and {self.image_width} wide")
 
@@ -120,6 +122,7 @@ class RayTracer():
             int(256 * clamp(color.y, 0.0, 0.999)),
             int(256 * clamp(color.z, 0.0, 0.999)),
         )
+        #PIL top right is (0,0)
         arr[-j+(self.image_height-1),i] = final_color.unwrap()
 
     #save the image to a file
@@ -163,9 +166,10 @@ def main():
     floor_b = -4
     floor_f = 10
 
-
+    #Add a floor
     rt.add_object(RectFlat(floor_l,floor_r,floor_b,floor_f,0, Lambertian( Texture("wood.jpg")) ))
 
+    # generate random spheres that do not collide
     spheres = [Sphere( Vec3(0.0,   2.0, 0.0), 2, Metal(SolidColor(Vec3(1.0,1.0,1.0))) )]
     while(len(spheres)< NUM_SPHERES):
         test_radius = uniform(0.5,1.5)
@@ -183,7 +187,7 @@ def main():
     for s in spheres:
         rt.add_object(s)
     
-    rt.finalize() #generates the bbv
+    rt.finalize()
     rt.run()
 
 if __name__ == "__main__":

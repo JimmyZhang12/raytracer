@@ -15,19 +15,22 @@ import numpy as np
 import random
 
 
-#Parents class enforcing a color value query
+#Abstract class representing a material color
+#Textures are sampled using u,v coordinates
 class Color(ABC):
     @property
     @abstractmethod
     def value(self, u, v) -> Vec3:
         pass
 
+#Uniform color
 class SolidColor(Color):
     def __init__(self, color):
         self.color = color
     def value(self, collision):
         return self.color
 
+#A dark green and white checkerboard color
 class CheckerColor(Color):
     def value(self, collision):
 
@@ -42,6 +45,7 @@ class CheckerColor(Color):
             else:
                 return Vec3(0.9,0.9,0.3)
 
+#A textture, loads from an image file
 class Texture(Color):
     def __init__(self, fname):
         print(f"Loading Texture from: {fname}")
@@ -60,8 +64,8 @@ class Texture(Color):
 
 
 #Parents class for materials
-#Used to get a ray bounce and color
-#Child classes must implement ray bounce calculation
+#Used to get a ray bounce and color based on the material properties
+#Child classes must implement the ray bounce calculation
 class Material(ABC):
     albedo = None
 
