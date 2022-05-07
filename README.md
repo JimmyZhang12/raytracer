@@ -3,6 +3,7 @@
 ![Sample](scene_golden.png)
 
 A Raytracer implemented in Python, following the architecture decribed by "Ray Tracing the next Week" by Peter Shirley
+For CS418 Spring 2022
 
 ## Features:
 - Positionable camera	
