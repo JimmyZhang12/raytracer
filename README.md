@@ -68,13 +68,13 @@ I also support multithreading, assigning a number of rows for each thread. On my
 Profiling the code, the raytracer spends 90%+ of its time traversing the BVH tree and very little time actually simulating the objects. One could probably achieve greater performance by mapping the BVH to Cython, or by using a more efficent algorthim. Given the small size of the tree, I also think caching traversals would be useful as well.
 
 I also thought about vectorization but I could not come up with a performant enough scheme for numpy. The main issue is that a set of rays need the same physics calculation to be vectorized by numpy. But a set of rays, say for sampling of one pixel, may bounce into objects of different types. In general only the first bounce can be guaranteed to be the same for a set of nodes on a pixel. 
-This is a limitation of the fact that objects are represented as mathematical formulas. In a real ray tracing engine, the bounces would on polygons and would be very vectorizeable.
+This is a limitation of the fact that objects are represented as mathematical formulas. In a real ray tracing engine, the bounces would on be polygons and would be very vectorizeable.
 
 One would have to dynamically group similar ray calculations at runtime to take advantage of vectorization, either by masking the vector or reordering them. While this is possible and a technique often used in HPC, is outside the scope of this project. 
 
 The raytracer takes about 20minutes to render the sample image at 900x600. 
 
-Citations:
-https://raytracing.github.io/books/RayTracingInOneWeekend.html
-https://raytracing.github.io/books/RayTracingTheNextWeek.html
-https://www.pexels.com/photo/brown-wooden-parquet-flooring-129731/
+References:
+    https://raytracing.github.io/books/RayTracingInOneWeekend.html
+    https://raytracing.github.io/books/RayTracingTheNextWeek.html
+    https://www.pexels.com/photo/brown-wooden-parquet-flooring-129731/
