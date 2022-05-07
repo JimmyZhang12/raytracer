@@ -2,12 +2,12 @@
 ## By Jimmy Zhang (jimmyjz2@illinois.edu)
 A Raytracer implemented in Python, following the architecture decribed by "Ray Tracing the next Week" by Peter Shirley
 
-# Dependencies:
+### Dependencies:
 Python3.8+
 numpy
 PIL
     
-# Running
+### Running
 This project can be run using the following command:
 ```
     python3 main.py
@@ -15,7 +15,7 @@ This project can be run using the following command:
 
 This project will output a "scene.png" in the current working directory
 
-# Features:
+### Features:
 Positionable camera	
 Spheres
 Planes
@@ -28,7 +28,7 @@ Textures
 Shadows
     
 
-# Files:
+### Files:
     boundingbox.py 
         classes implementing the Bounding Hierarchy Tree
     camera.py
@@ -56,14 +56,14 @@ Shadows
         You can customize the settings by editing the constants marked "PARAMETERS"
         at the start of: RayTracer() in main.py
 
-# Remarks
+## Remarks
 There are notable changes in order to take advantage Python's power dynamic typing abilities compared to Peter Shirley's book. 
 Namely, my BVH implementation relies on reducing a dynamic list of bounding boxes and objects into a tree structure. The raytracer builds the tree in a bottom up manner, combining nodes until the root is reached. This is contrast with the RTIAW (Ray Tracing in a Weekend) which goes in a top down manner.  Next, materials and colors are treated as first class attributes of objects rather than references. 
 Finally, I use my Vec3 class to represent any three length array, which includes representing colors, points, and vectors for my raytracer.
 
 I also implemented my own Vec3 api, which is essentially a wrapper for a 3-item Python list.
 
-## Performance
+### Performance
 I also support multithreading, assigning a number of rows for each thread. On my Ryzen 5600x, using 6 threads yields about a 2.5x in improvement. For my Vec3 implementation, I opted to use the standard python list rather than a numpy array as the underlying data strucutre. This is because while numpy arrays are very fast a vectorized operations, they have much greater overhead for object construction. Because of the short length Vec3, and because Python lists are heavily optimized for insertion and manipulation, performance is actually greater for numpy.
 
 Profiling the code, the raytracer spends 90+ of its time traversing the BVH tree and very little time actually simulating the objects. One could probably achieve greater performance by mapping the BVH the Cython, or by using a more efficent algorthim.
