@@ -1,7 +1,7 @@
 # Raytracing Project
 ## By Jimmy Zhang (jimmyjz2@illinois.edu)
 A Raytracer implemented in Python, following the architecture decribed by "Ray Tracing the next Week" by Peter Shirley
-
+![Sample](scene_golden.png)
 ## Features:
 - Positionable camera	
 - Spheres
@@ -75,6 +75,6 @@ One would have to dynamically group similar ray calculations at runtime to take 
 The raytracer takes about 20minutes to render the sample image at 900x600. 
 
 References:
-    https://raytracing.github.io/books/RayTracingInOneWeekend.html
-    https://raytracing.github.io/books/RayTracingTheNextWeek.html
-    https://www.pexels.com/photo/brown-wooden-parquet-flooring-129731/
+    - https://raytracing.github.io/books/RayTracingInOneWeekend.html
+    - https://raytracing.github.io/books/RayTracingTheNextWeek.html
+    - https://www.pexels.com/photo/brown-wooden-parquet-flooring-129731/
