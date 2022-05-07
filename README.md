@@ -3,9 +3,9 @@
 A Raytracer implemented in Python, following the architecture decribed by "Ray Tracing the next Week" by Peter Shirley
 
 ### Dependencies:
-Python3.8+
-numpy
-PIL
+- Python3.8+
+- numpy 
+- PIL
     
 ### Running
 This project can be run using the following command:
