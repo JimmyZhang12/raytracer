@@ -27,19 +27,6 @@ This project can be run using the following command:
 
 This project will output a "scene.png" in the current working directory
 
-### Features:
-Positionable camera	
-Spheres
-Planes
-Diffuse material	
-Metal material		
-Dielectrics	
-Instancing
-Bounding Volume Hierarchy
-Textures
-Shadows
-    
-
 ### Files:
     boundingbox.py 
         classes implementing the Bounding Hierarchy Tree
