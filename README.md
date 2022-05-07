@@ -2,6 +2,18 @@
 ## By Jimmy Zhang (jimmyjz2@illinois.edu)
 A Raytracer implemented in Python, following the architecture decribed by "Ray Tracing the next Week" by Peter Shirley
 
+## Features:
+    Positionable camera	
+    Spheres
+    Planes
+    Diffuse material	
+    Metal material		
+    Dielectrics	
+    Instancing
+    Bounding Volume Hierarchy
+    Textures
+    Shadows
+
 ### Dependencies:
 - Python3.8+
 - numpy 
