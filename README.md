@@ -80,6 +80,6 @@ One would have to dynamically group similar ray calculations at runtime to take 
 For the sample image, the amount of rays is 500x900x600. Say each ray is 1000 instructions generously. Assuming a CPI of 1 (an underestimate), a 4ghz single core should be able to finish roughly about a minute. My processor is an 8 core, 6wide CPU so it should chew through the image in seconds! There is a ton of performance left on the table.
 
 References:
-    - https://raytracing.github.io/books/RayTracingInOneWeekend.html
-    - https://raytracing.github.io/books/RayTracingTheNextWeek.html
-    - https://www.pexels.com/photo/brown-wooden-parquet-flooring-129731/
+- https://raytracing.github.io/books/RayTracingInOneWeekend.html
+- https://raytracing.github.io/books/RayTracingTheNextWeek.html
+- https://www.pexels.com/photo/brown-wooden-parquet-flooring-129731/
